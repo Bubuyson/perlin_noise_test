@@ -6,7 +6,7 @@ from constants_perlin_new import *
 import os
 import cv2
 
-os.environ['SDL_VIDEO_WINDOW_POS'] = "700,400"
+# os.environ['SDL_VIDEO_WINDOW_POS'] = "700,400"
 
 def map_terrain_to_numbers(terrain):
     terrain_map = {
@@ -43,19 +43,15 @@ def generate_terrain(n, m):
             noise_value = noise.pnoise2(x, y, octaves=OCTAVES, persistence=PERSISTANCE,
                                          lacunarity=LACUNARITY, repeatx=REPEAT_X, repeaty=REPEAT_Y, base=seed)
             noise_vals.append(noise_value)
-            if noise_value < -0.3:
+            if noise_value < -0.11:
                 terrain[i, j] = WATER_CODE  # Water
-            elif noise_value < 0.0:
+            elif noise_value < -0.06:
                 terrain[i, j] = MUD_CODE  # Mud
-            elif noise_value < 0.05:
-                terrain[i, j] = WATER_CODE  # Water
-            elif noise_value < 0.07:
+            elif noise_value < 0.11:
+                terrain[i, j] = GRASS_CODE  # Water
+            elif noise_value < 0.5:
                 terrain[i, j] = MOUNTAIN_CODE  # Mountain
-            elif noise_value < 0.4:
-                terrain[i, j] = GRASS_CODE  # Grass (more probable)
-            elif noise_value < 0.6:
-                terrain[i, j] = MOUNTAIN_CODE  # Mountain
-            else: 
+            else:
                 terrain[i, j] = GRASS_CODE
                 
     return terrain, noise_vals
@@ -111,8 +107,11 @@ def place_players(terrain):
     # Place players on the grid (bottom-left and top-right corners with some surrounding grass)
 
     base_indexes = set()
+    red_indexes = set()
+    blue_indexes = set()
     player_positions = [(N-1, 0), (0, M-1)]
     for pos in player_positions:
+        
         terrain[pos[0], pos[1]] = GRASS_CODE  # Ensure grass for player position
         base_size = (random.randint(MIN_BASE_SIZE_X, MAX_BASE_SIZE_X + 1), random.randint(MIN_BASE_SIZE_Y, MAX_BASE_SIZE_Y + 1))
         if base_size[0] > N:
@@ -127,8 +126,13 @@ def place_players(terrain):
                 if 0 <= nx < N and 0 <= ny < M:
                     terrain[nx, ny] = GRASS_CODE  # Surrounding grass
                     base_indexes.add((nx, ny))
+                    if pos == player_positions[0]:
+                        red_indexes.add((nx, ny))
+                    else:
+                        blue_indexes.add((nx, ny))
+                    
 
-    return base_indexes
+    return base_indexes, red_indexes, blue_indexes
 
 def place_rewards(terrain, base_positions):
     num_clusters = NUM_CLUSTER  # Number of reward clusters
@@ -187,15 +191,13 @@ def place_rewards(terrain, base_positions):
 
 
 def main(screen):
-    terrain, noise_vals = generate_terrain2(N, M)
-    # terrain, noise_vals = generate_terrain(N, M)
+    # terrain, noise_vals = generate_terrain2(N, M)
+    terrain, noise_vals = generate_terrain(N, M)
     
     # print noise vals for 3 digits
     # print("Noise values: ", [round(x, 3) for x in noise_vals])
 
-    base_indexes = place_players(terrain)
     var, edge_density = acceptability_check(terrain)
-    
     print(f"Variance is {var},", end=" ") 
     print(f"edge density is {edge_density}")
     if var > VARIANCE_LIMIT:
@@ -208,6 +210,11 @@ def main(screen):
         print("Edge density is acceptable.")
     else:
         print("Edge density is not acceptable.")
+
+    base_indexes = place_players(terrain)
+    
+    
+
         
     rewards = place_rewards(terrain, base_indexes)
 
@@ -228,7 +235,7 @@ def main(screen):
 
 if __name__ == "__main__":
     
-    for i in range(10):
+    for i in range(100):
         
         # Initialize Pygame
         pygame.init()

@@ -4,14 +4,14 @@
 GRID_SIZE = 30
 
 # Number of grid cells in y direction
-N = 10
+N = 18
 # Number of grid cells in x direction
-M = 20
+M = 24
 
 GRASS_CODE    = 'g'
 MUD_CODE      = 'm'
 WATER_CODE    = 'w'
-MOUNTAIN_CODE = 'mm'
+MOUNTAIN_CODE = 'd'
 RESOURCE_CODE = 'r'
 
 # Dynamically set window size based on grid dimensions
@@ -22,14 +22,14 @@ TERRAIN_COLORS = {
     GRASS_CODE    : (34, 139, 34),  # Grass
     MUD_CODE      : (139, 69, 19),  # Mud
     WATER_CODE    : (0, 0, 255),    # Water
-    MOUNTAIN_CODE : (169, 169, 169),# Mountain
+    MOUNTAIN_CODE : (169, 169 , 169),# Mountain
     RESOURCE_CODE : (255, 215, 0)   # Resource
 }
 BACKGROUND_COLOR = (0, 0, 0)  # Black background color
 
-SCALE = 30.0  # Adjust scale for smoother transitions
+SCALE = 10.0  # Adjust scale for smoother transitions
 OCTAVES = 10  # Number of levels of detail
-PERSISTANCE = 0.6  # Amplitude of each octave
+PERSISTANCE = 0.5  # Amplitude of each octave
 LACUNARITY = 2.0  # Frequency of each octave
 
 REPEAT_X = N  # Repeat noise pattern in x direction
@@ -46,8 +46,8 @@ MAX_BASE_SIZE_Y = 5
 
 # NUM_CLUSTER = N*M//50
 NUM_CLUSTER = 5
-MIN_CLUSTER_SIZE = 3
-MAX_CLUSTER_SIZE = 3
+MIN_CLUSTER_SIZE = 5
+MAX_CLUSTER_SIZE = 5
 MAX_OFFSET_TEST = 5
 
 
