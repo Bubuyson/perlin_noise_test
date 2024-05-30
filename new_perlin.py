@@ -3,15 +3,18 @@ import noise
 import numpy as np
 import random
 from constants_perlin_new import *
+import os
 import cv2
+
+os.environ['SDL_VIDEO_WINDOW_POS'] = "700,400"
 
 def map_terrain_to_numbers(terrain):
     terrain_map = {
-        "g": 0,  # Grass
-        "m": 1,  # Mud
-        "w": 2,  # Water
-        "mm": 3,  # Mountain
-        "r": 4  # Resource
+        GRASS_CODE: 0,  # Grass
+        MUD_CODE: 1,  # Mud
+        WATER_CODE: 2,  # Water
+        MOUNTAIN_CODE: 3,  # Mountain
+        RESOURCE_CODE: 4  # Resource
     }
     return np.vectorize(terrain_map.get)(terrain)
 
@@ -41,19 +44,19 @@ def generate_terrain(n, m):
                                          lacunarity=LACUNARITY, repeatx=REPEAT_X, repeaty=REPEAT_Y, base=seed)
             noise_vals.append(noise_value)
             if noise_value < -0.3:
-                terrain[i, j] = "w"  # Water
+                terrain[i, j] = WATER_CODE  # Water
             elif noise_value < 0.0:
-                terrain[i, j] = "m"  # Mud
+                terrain[i, j] = MUD_CODE  # Mud
             elif noise_value < 0.05:
-                terrain[i, j] = "w"  # Water
+                terrain[i, j] = WATER_CODE  # Water
             elif noise_value < 0.07:
-                terrain[i, j] = "mm"  # Mountain
+                terrain[i, j] = MOUNTAIN_CODE  # Mountain
             elif noise_value < 0.4:
-                terrain[i, j] = "g"  # Grass (more probable)
+                terrain[i, j] = GRASS_CODE  # Grass (more probable)
             elif noise_value < 0.6:
-                terrain[i, j] = "mm"  # Mountain
+                terrain[i, j] = MOUNTAIN_CODE  # Mountain
             else: 
-                terrain[i, j] = "g"
+                terrain[i, j] = GRASS_CODE
                 
     return terrain, noise_vals
 
@@ -71,31 +74,31 @@ def generate_terrain2(n, m):
             # noise_value = noise_value * 1.5
             noise_vals.append(noise_value)
             if noise_value < -0.3:
-                terrain[i, j] = "w"  # Water
+                terrain[i, j] = WATER_CODE  # Water
             elif noise_value < -0.12:
-                terrain[i, j] = "g"  # Grass
+                terrain[i, j] = GRASS_CODE  # Grass
             elif noise_value < -0.1:
-                terrain[i, j] = "w"  # Water
+                terrain[i, j] = WATER_CODE  # Water
             elif noise_value < 0.0:
-                terrain[i, j] = "m"  # Mud
+                terrain[i, j] = MUD_CODE  # Mud
             elif noise_value < 0.05:
-                terrain[i, j] = "w"  # Water
+                terrain[i, j] = WATER_CODE  # Water
             elif noise_value < 0.07:
-                terrain[i, j] = "mm"  # Mountain
+                terrain[i, j] = MOUNTAIN_CODE  # Mountain
             elif noise_value < 0.15:
-                terrain[i, j] = "g"  # Grass
+                terrain[i, j] = GRASS_CODE  # Grass
             elif noise_value < 0.25:
-                terrain[i, j] = "m"  # Mud
+                terrain[i, j] = MUD_CODE  # Mud
             elif noise_value < 0.35:
-                terrain[i, j] = "w"  # Water
+                terrain[i, j] = WATER_CODE  # Water
             elif noise_value < 0.4:
-                terrain[i, j] = "g"  # Grass
+                terrain[i, j] = GRASS_CODE  # Grass
             elif noise_value < 0.5:
-                terrain[i, j] = "mm"  # Mountain
+                terrain[i, j] = MOUNTAIN_CODE  # Mountain
             elif noise_value < 0.6:
-                terrain[i, j] = "m"  # Mud
+                terrain[i, j] = MUD_CODE  # Mud
             else: 
-                terrain[i, j] = "g"  # Grass
+                terrain[i, j] = GRASS_CODE  # Grass
 
     return terrain, noise_vals
 
@@ -110,8 +113,8 @@ def place_players(terrain):
     base_indexes = set()
     player_positions = [(N-1, 0), (0, M-1)]
     for pos in player_positions:
-        terrain[pos[0], pos[1]] = "g"  # Ensure grass for player position
-        base_size = (random.randint(MIN_BASE_SIZE_X, MAX_BASE_SIZE_X), random.randint(MIN_BASE_SIZE_Y, MAX_BASE_SIZE_Y))
+        terrain[pos[0], pos[1]] = GRASS_CODE  # Ensure grass for player position
+        base_size = (random.randint(MIN_BASE_SIZE_X, MAX_BASE_SIZE_X + 1), random.randint(MIN_BASE_SIZE_Y, MAX_BASE_SIZE_Y + 1))
         if base_size[0] > N:
             base_size = (N, base_size[1])
         if base_size[1] > M:
@@ -122,54 +125,91 @@ def place_players(terrain):
             for dy in range(-1, base_size[1]):
                 nx, ny = pos[0] + dx, pos[1] + dy
                 if 0 <= nx < N and 0 <= ny < M:
-                    terrain[nx, ny] = "g"  # Surrounding grass
+                    terrain[nx, ny] = GRASS_CODE  # Surrounding grass
                     base_indexes.add((nx, ny))
 
     return base_indexes
 
-def place_rewards(terrain, base_indexes):
-    num_clusters = random.randint(1, NUM_CLUSTER)  # Number of reward clusters
-    rewards = []
-    
-    # Flatten base_indexes list for easier checking
-    base_positions = set(base_indexes)
-    
-    for _ in range(num_clusters):
-        cluster_size = random.randint(MIN_REWARD_SIZE, MAX_REWARD_SIZE)
+def place_rewards(terrain, base_positions):
+    num_clusters = NUM_CLUSTER  # Number of reward clusters
+    resources = []
+    total_trial = 0
+    i = 0
+    while i < num_clusters and total_trial <= MAX_NUM_TRIAL_FOR_RESOURCE:
+        cluster_size = random.randint(MIN_CLUSTER_SIZE, MAX_CLUSTER_SIZE)
         n_trials = 0
-        while True and n_trials < 100:
+        while True and n_trials <= MAX_NUM_FOR_CLUSTER_FIND:
             # Find a grassy area to start the cluster
             cluster_y, cluster_x = random.randint(0, len(terrain)-1), random.randint(0, len(terrain[0])-1)
             n_trials += 1
-            if terrain[cluster_y][cluster_x] == 'g':
+            if terrain[cluster_y][cluster_x] not in [MOUNTAIN_CODE, RESOURCE_CODE] and (cluster_y, cluster_x) not in base_positions and 0 <= cluster_y < len(terrain) and 0 <= cluster_x < len(terrain[0]):
                 break
         
         # Place the cluster around the starting point, ensuring all are on grass
-        for _ in range(cluster_size):
-            offset_y, offset_x = random.randint(-1, 1), random.randint(-1, 1)
-            reward_y, reward_x = cluster_y + offset_y, cluster_x + offset_x
-            if (reward_y, reward_x) not in base_positions and 0 <= reward_y < len(terrain) and 0 <= reward_x < len(terrain[0]) and terrain[reward_y][reward_x] == 'g':
-                rewards.append({'x': reward_x, 'y': reward_y})
-                terrain[reward_y][reward_x] = 'r'
+        that_cluster_list = set()
+        that_cluster_list.add((cluster_y, cluster_x))
+        resource_put = False
+        first_offset = True
+        for k in range(0, cluster_size):
+            offset_trial = 0
+            offset_done = False
+            while offset_trial <= MAX_OFFSET_TEST and not offset_done:
+                if first_offset:
+                    offset_x = offset_y = 0
+                    
+                else:
+                    offset_y, offset_x = np.random.randint(-1, 2), np.random.randint(-1, 2)
+                    if offset_x == offset_y or offset_x == -offset_y:
+                        if np.random.randint(2):
+                            offset_y = 0
+                        else:
+                            offset_x = 0
+                
+                sampled_cluster_point = random.sample(sorted(that_cluster_list), 1)[0]
+                reward_y, reward_x = sampled_cluster_point[0] + offset_y, sampled_cluster_point[1] + offset_x
+                
+                if first_offset or ((reward_y, reward_x) not in that_cluster_list and (reward_y, reward_x) not in base_positions and 0 <= reward_y < len(terrain) and 0 <= reward_x < len(terrain[0])): #and terrain[reward_y][reward_x] is not 'mm':
+                    resources.append({'x': reward_x, 'y': reward_y})
+                    that_cluster_list.add((reward_y, reward_x))
+                    terrain[reward_y][reward_x] = RESOURCE_CODE
+                    resource_put = True
+                    offset_done = True
+                    first_offset = False
+                    
+                offset_trial += 1
+        if resource_put:
+            i += 1
+        total_trial += 1
+                
     
-    return rewards
+    return resources
 
 
 
 def main(screen):
     terrain, noise_vals = generate_terrain2(N, M)
+    # terrain, noise_vals = generate_terrain(N, M)
     
     # print noise vals for 3 digits
     # print("Noise values: ", [round(x, 3) for x in noise_vals])
 
     base_indexes = place_players(terrain)
-    place_rewards(terrain, base_indexes)
-
     var, edge_density = acceptability_check(terrain)
+    
+    print(f"Variance is {var},", end=" ") 
+    print(f"edge density is {edge_density}")
+    if var > VARIANCE_LIMIT:
+        print("Variance is acceptable.")
+    else:
+        print("Variance is not acceptable")
 
-    print(f"Variance: {var}, Edge Density: {edge_density}")
-    if var > VARIANCE_LIMIT and edge_density > EDGE_LIMIT:
-        print("Noise is acceptable.")
+    
+    if edge_density > EDGE_DENSITY_LIMIT:
+        print("Edge density is acceptable.")
+    else:
+        print("Edge density is not acceptable.")
+        
+    rewards = place_rewards(terrain, base_indexes)
 
     running = True
 
@@ -181,13 +221,15 @@ def main(screen):
         screen.fill(BACKGROUND_COLOR)
         draw_grid(screen, terrain)
         pygame.display.flip()
+        a = 1
 
     pygame.quit()
 
 
 if __name__ == "__main__":
     
-    for _ in range(10):
+    for i in range(10):
+        
         # Initialize Pygame
         pygame.init()
 

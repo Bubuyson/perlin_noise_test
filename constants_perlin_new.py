@@ -8,22 +8,27 @@ N = 10
 # Number of grid cells in x direction
 M = 20
 
+GRASS_CODE    = 'g'
+MUD_CODE      = 'm'
+WATER_CODE    = 'w'
+MOUNTAIN_CODE = 'mm'
+RESOURCE_CODE = 'r'
 
 # Dynamically set window size based on grid dimensions
 WINDOW_WIDTH, WINDOW_HEIGHT = M * GRID_SIZE, N * GRID_SIZE
 
 # Terrain types with distinct colors
 TERRAIN_COLORS = {
-    "g": (34, 139, 34),  # Grass
-    "m": (139, 69, 19),  # Mud
-    "w": (0, 0, 255),    # Water
-    "mm": (169, 169, 169),# Mountain
-    "r": (255, 215, 0)   # Resource
+    GRASS_CODE    : (34, 139, 34),  # Grass
+    MUD_CODE      : (139, 69, 19),  # Mud
+    WATER_CODE    : (0, 0, 255),    # Water
+    MOUNTAIN_CODE : (169, 169, 169),# Mountain
+    RESOURCE_CODE : (255, 215, 0)   # Resource
 }
 BACKGROUND_COLOR = (0, 0, 0)  # Black background color
 
-SCALE = 10.0  # Adjust scale for smoother transitions
-OCTAVES = 30  # Number of levels of detail
+SCALE = 30.0  # Adjust scale for smoother transitions
+OCTAVES = 10  # Number of levels of detail
 PERSISTANCE = 0.6  # Amplitude of each octave
 LACUNARITY = 2.0  # Frequency of each octave
 
@@ -39,9 +44,15 @@ MAX_BASE_SIZE_Y = 5
 
 # Reward clusters
 
-NUM_CLUSTER = N*M//100
-MIN_REWARD_SIZE = 2
-MAX_REWARD_SIZE = 5
+# NUM_CLUSTER = N*M//50
+NUM_CLUSTER = 5
+MIN_CLUSTER_SIZE = 3
+MAX_CLUSTER_SIZE = 3
+MAX_OFFSET_TEST = 5
+
 
 VARIANCE_LIMIT = 0.45
-EDGE_LIMIT = 60
+EDGE_DENSITY_LIMIT = 45
+
+MAX_NUM_TRIAL_FOR_RESOURCE = 30
+MAX_NUM_FOR_CLUSTER_FIND = 100
